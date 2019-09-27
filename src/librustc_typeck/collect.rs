@@ -2587,7 +2587,16 @@ fn codegen_fn_attrs(tcx: TyCtxt<'_>, id: DefId) -> CodegenFnAttrs {
         } else if attr.check_name(sym::rustc_allocator_nounwind) {
             codegen_fn_attrs.flags |= CodegenFnAttrFlags::RUSTC_ALLOCATOR_NOUNWIND;
         } else if attr.check_name(sym::naked) {
-            codegen_fn_attrs.flags |= CodegenFnAttrFlags::NAKED;
+            if tcx.fn_sig(id).inputs().skip_binder().iter().len() == 0 {
+                codegen_fn_attrs.flags |= CodegenFnAttrFlags::NAKED;
+            } else {
+                struct_span_err!(
+                    tcx.sess,
+                    attr.span,
+                    E0051,
+                    "unable to use `naked` on function with inputs"
+                ).emit();
+            }
         } else if attr.check_name(sym::no_mangle) {
             codegen_fn_attrs.flags |= CodegenFnAttrFlags::NO_MANGLE;
         } else if attr.check_name(sym::rustc_std_internal_symbol) {

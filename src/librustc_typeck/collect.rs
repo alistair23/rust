@@ -2744,6 +2744,21 @@ fn codegen_fn_attrs(tcx: TyCtxt<'_>, id: DefId) -> CodegenFnAttrs {
         }
     }
 
+    // If a function uses #[naked] it won't be inlined into general
+    // purpose functions by LLVM. Instead of ignoring the users request let's
+    // raise an error.
+    if codegen_fn_attrs.flags.contains(CodegenFnAttrFlags::NAKED) {
+        if codegen_fn_attrs.inline == InlineAttr::Always {
+            if let Some(span) = inline_span {
+                tcx.sess.span_err(
+                    span,
+                    "cannot use `#[inline(always)]` with \
+                     `#[naked]`",
+                );
+            }
+        }
+    }
+
     // Weak lang items have the same semantics as "std internal" symbols in the
     // sense that they're preserved through all our LTO passes and only
     // strippable by the linker.
